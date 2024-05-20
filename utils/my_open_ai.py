@@ -12,7 +12,7 @@ class AIModel(Enum):
     MOONSHOT = 'moonshot-v1-8k'
 
 
-def getOpenAIClient():
+def get_open_ai_client():
     with open('manifest.json') as f:
         token = json.load(f)['moonshot']
     return OpenAI(
@@ -35,11 +35,14 @@ def get_response_from_openai(
         tools=tools,
         tool_choice=tool_choice
     )
-    result = _form_api_result(client, messages, response)
+    result = _form_api_result(client, messages, response, model)
     return result
 
 
-def _form_api_result(client, messages, response):
+def _form_api_result(client,
+                     messages: List,
+                     response,
+                     model=AIModel.GPT3Turbo.value):
     message = response.choices[0].message
 
     if message.tool_calls:
@@ -51,7 +54,7 @@ def _form_api_result(client, messages, response):
             "name": function_name,
             "content": function_result,
         })
-        function_response = _get_function_response_from_openai(client, messages)
+        function_response = _get_function_response_from_openai(client, messages, model)
         return function_response
     else:
         return message.content
@@ -64,5 +67,5 @@ def _get_function_response_from_openai(client,
         model=model,
         messages=messages,
     )
-    result = _form_api_result(client, messages, response)
+    result = _form_api_result(client, messages, response, model)
     return result

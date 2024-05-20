@@ -1,6 +1,6 @@
-from utils import getOpenAIClient, get_response_from_openai
+from utils import get_open_ai_client, get_response_from_openai
 
-client = getOpenAIClient()
+client = get_open_ai_client()
 
 tools = [
     {
@@ -40,12 +40,12 @@ def test_model(model):
 
 
 if __name__ == "__main__":
-    test_model("moonshot-v1-8k")
-    # query = '現在幾點了'
-    # messages = [
-    #     # {'role': 'system',
-    #     #  'content': '你是一个優秀的語音助手，你可以藉助自己的知識或用戶給的function幫助用戶得到他想要的答案。'},
-    #     {'role': 'user', 'content': query},
-    # ]
-    # result = get_response_from_openai(client=client, messages=messages, tools=tools, model='moonshot-v1-8k')
-    # print(result)
+    # test_model("moonshot-v1-8k")
+    query = '地球的自转周期是多少'
+    messages = [
+        # {'role': 'system',
+        #  'content': '你是一个優秀的語音助手，你可以藉助自己的知識或用戶給的function幫助用戶得到他想要的答案。'},
+        {'role': 'user', 'content': query},
+    ]
+    result = get_response_from_openai(client=client, messages=messages, tools=tools, model='moonshot-v1-8k')
+    print(result)
