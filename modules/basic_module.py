@@ -32,8 +32,8 @@ def _get_location_by_ip_address(ip_address: str):
         data = result['data']
         location = {
             'city': data.get('city'),
-            'longitude': float(data.get('longitude')),
-            'latitude': float(data.get('latitude'))
+            # 'longitude': float(data.get('longitude')),
+            # 'latitude': float(data.get('latitude'))
         }
         return location
     else:
@@ -41,30 +41,37 @@ def _get_location_by_ip_address(ip_address: str):
 
 
 def get_city_weather(city: list):
-    #api地址
+    # api地址
     url = 'http://t.weather.sojson.com/api/weather/city/'
 
-    #读取json文件
-    f = open('city.json', 'rb')
+    # 读取json文件
+    with open('utils/city.json', 'rb') as f:
+        # 使用json模块的load方法加载json数据，返回一个字典
+        cities = json.load(f)
 
-    #使用json模块的load方法加载json数据，返回一个字典
-    cities = json.load(f)
+    final_result = ""
+    if len(city) == 0:
+        ip_address = _get_ip_address()
+        city.append(_get_location_by_ip_address(ip_address)['city'])
+    for each_city in city:
+        # 通过城市的中文获取城市代码
+        city_code = cities.get(each_city)
+        if city_code is None:
+            print("Not supported city")
+            return
+        # 网络请求，传入请求api+城市代码
+        response = requests.get(url + city_code)
+        # 将数据以json形式返回，这个d就是返回的json数据
+        d = response.json()
+        # 当返回状态码为200，输出天气状况
+        if d['status'] == 200:
+            city_result = "城市：" + d["cityInfo"]["parent"] + " " + d["cityInfo"]["city"] + "\n"
+            time_result = "时间：" + d["time"] + " " + d["data"]["forecast"][0]["week"] + "\n"
+            temper_result = "温度：" + d["data"]["forecast"][0]["high"] + " " + d["data"]["forecast"][0]["low"] + "\n"
+            weather_result = "天气：" + d["data"]["forecast"][0]["type"]
+            final_result = city_result + time_result + temper_result + weather_result
 
-    #通过城市的中文获取城市代码
-    city = cities.get(city[0])
-
-    #网络请求，传入请求api+城市代码
-    response = requests.get(url + city)
-
-    #将数据以json形式返回，这个d就是返回的json数据
-    d = response.json()
-
-    #当返回状态码为200，输出天气状况
-    if d['status'] == 200:
-        print("城市：", d["cityInfo"]["parent"], d["cityInfo"]["city"])
-        print("时间：", d["time"], d["data"]["forecast"][0]["week"])
-        print("温度：", d["data"]["forecast"][0]["high"], d["data"]["forecast"][0]["low"])
-        print("天气：", d["data"]["forecast"][0]["type"])
+    return final_result
 
 
 BasicFunction = {
