@@ -1,5 +1,7 @@
 import datetime
-import requests, json
+
+import json
+import requests
 
 
 def get_current_time():
@@ -9,7 +11,16 @@ def get_current_time():
     return
     str: Current system time
     """
-    current_time = datetime.datetime.now().strftime("%H:%M:%S")
+    current_datetime = datetime.datetime.now()
+    current_time = {
+        "year": current_datetime.year,
+        "month": current_datetime.month,
+        "day": current_datetime.day,
+        "hour": current_datetime.hour,
+        "minute": current_datetime.minute,
+        "second": current_datetime.second,
+        "weekday": current_datetime.weekday()
+    }
     return current_time
 
 
@@ -20,61 +31,70 @@ def _get_ip_address():
     return
     str: ip address for current device
     """
-    response = requests.get('https://api.ipify.org')
+    response = requests.get("https://api.ipify.org")
     return response.text
 
 
 def _get_location_by_ip_address(ip_address: str):
-    url = 'https://ip.taobao.com/outGetIpInfo?ip={}&accessKey=alibaba-inc'.format(ip_address)
+    url = "https://ip.taobao.com/outGetIpInfo?ip={}&accessKey=alibaba-inc".format(ip_address)
     response = requests.get(url)
     result = response.json()
-    if result['code'] == 0:
-        data = result['data']
+    if result["code"] == 0:
+        data = result["data"]
         location = {
-            'city': data.get('city'),
-            # 'longitude': float(data.get('longitude')),
-            # 'latitude': float(data.get('latitude'))
+            "city": data.get("city"),
+            # "longitude": float(data.get("longitude")),
+            # "latitude": float(data.get("latitude"))
         }
         return location
     else:
         return None
 
 
-def get_city_weather(city: list):
-    # api地址
-    url = 'http://t.weather.sojson.com/api/weather/city/'
+def get_city_weather(cities: list):
+    # api address
+    url = "http://t.weather.sojson.com/api/weather/city/"
 
-    # 读取json文件
-    with open('utils/city.json', 'rb') as f:
-        # 使用json模块的load方法加载json数据，返回一个字典
-        cities = json.load(f)
+    # read city code from json file
+    with open("utils/data/weather_city_code.json", "rb") as f:
+        city_code_list = json.load(f)
 
     final_result = ""
-    if len(city) == 0:
+    if len(cities) == 0:
         ip_address = _get_ip_address()
-        city.append(_get_location_by_ip_address(ip_address)['city'])
-    for each_city in city:
-        # 通过城市的中文获取城市代码
-        city_code = cities.get(each_city)
+        current_city = _get_location_by_ip_address(ip_address)
+        if current_city is None or current_city["city"] == "XX":
+            cities.append("上海")
+        else:
+            cities.append(current_city["city"])
+    for each_city in cities:
+        # get city code through city's name
+        city_code = city_code_list.get(each_city)
         if city_code is None:
             print("Not supported city")
             return
-        # 网络请求，传入请求api+城市代码
         response = requests.get(url + city_code)
-        # 将数据以json形式返回，这个d就是返回的json数据
-        d = response.json()
-        # 当返回状态码为200，输出天气状况
-        if d['status'] == 200:
-            city_result = "城市：" + d["cityInfo"]["parent"] + " " + d["cityInfo"]["city"] + "\n"
-            time_result = "时间：" + d["time"] + " " + d["data"]["forecast"][0]["week"] + "\n"
-            temper_result = "温度：" + d["data"]["forecast"][0]["high"] + " " + d["data"]["forecast"][0]["low"] + "\n"
-            weather_result = "天气：" + d["data"]["forecast"][0]["type"]
-            final_result = city_result + time_result + temper_result + weather_result
-
-    return final_result
+        weather_response = response.json()
+        # when status code is 200, return the weather result
+        if weather_response["status"] == 200:
+            city_weather = {
+                "status": "success",
+                "city": weather_response["cityInfo"]["city"],
+                "time": weather_response["time"],
+                "weekday": weather_response["data"]["forecast"][0]["week"],
+                "high_temper": weather_response["data"]["forecast"][0]["high"],
+                "low_temper": weather_response["data"]["forecast"][0]["low"],
+                "weather_type": weather_response["data"]["forecast"][0]["type"],
+                "weather_notice": weather_response["data"]["forecast"][0]["notice"]
+            }
+        else:
+            city_weather = {
+                "status": "error"
+            }
+    return city_weather
 
 
 BasicFunction = {
-    'datetime_query': get_current_time,
-    'weather_query': get_city_weather
+    "datetime_query": get_current_time,
+    "weather_query": get_city_weather
 }
